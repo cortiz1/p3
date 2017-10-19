@@ -24,6 +24,8 @@ typedef struct ticketSell {
 	int next_avail;
 } ticketSell;
 
+ticketSell tickets[10];
+
 customerQ *custQ;
 ticketSell tickets[10];
 
@@ -35,19 +37,40 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int serve_t = 0;
+// Number of customer to service 
+int N;
+
 // seller thread to serve one time slice (1 minute)
 void * sell(char *seller_type)
 {
 
 	while (serve_t < 60)
 	{
+		static int htype, mtype, ltype, htype_seats, htype_served, htype_customer;
+		int served_customer=0;
 		pthread_mutex_lock(&mutex);
 		//pthread_cond_wait(&cond, &mutex);
 		
 		if(strcmp(seller_type, "H") == 0){
+            
 			float serve_time  = H_serve_time[rand() % 2];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+			if(htype_seats>9){
+				htype_seats = 0;
+				htype++;
+			}
+			if(htype_customer == N){
+				printf("All Customers served of type H !\n");
+				pthread_mutex_unlock(&mutex);
+				return NULL;
+			}
+			served_customer = custQ[0].cust[htype_customer++].custId;
+			printf("Customer %d of Htype arrived..\n", served_customer);
+
+            tickets[htype].next_avail = htype_seats++;
+
 			sleep(serve_time);
+			printf("Customer %d served of Htype, Seat %d %d sold...", served_customer, htype, htype_seats-1);
 		} else if(strcmp(seller_type, "M") == 0) {
 			float serve_time  = M_serve_time[rand() % 3];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
@@ -132,8 +155,7 @@ void printCustomerQ(int N)
 int main(int argc, char *argv[])
 {
 
-	// Number of customer to service 
-	int N;
+
 
 	printf("Please enter the number of customer : ");
 	scanf("%d", &N);

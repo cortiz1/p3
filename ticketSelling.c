@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <semaphore.h>
 
 #define NUM_QUEUE 10
 
@@ -24,8 +25,6 @@ typedef struct ticketSell {
 	int next_avail;
 } ticketSell;
 
-ticketSell tickets[10];
-
 customerQ *custQ;
 ticketSell tickets[10];
 
@@ -33,58 +32,86 @@ float H_serve_time[] = {0.1, .2};
 float M_serve_time[] = {.2, .3, .4};
 float L_serve_time[] = {.4, .5, .6, .7};
 
+int m_serve_order[] = {4,5,3,6,2,7,1,8,0,9};
+
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int serve_t = 0;
 // Number of customer to service 
 int N;
+static int next_row_m = 0;
+static int htype = 0,  htype_served, htype_customer;
+static int mtype = 4,  mtype_served, mtype_customer;
+static int ltype = 9,  ltype_served, ltype_customer;
 
 // seller thread to serve one time slice (1 minute)
 void * sell(char *seller_type)
 {
 
-	while (serve_t < 60)
+	while (serve_t < 100)
 	{
-		static int htype, mtype, ltype, htype_seats, htype_served, htype_customer;
 		int served_customer=0;
-		pthread_mutex_lock(&mutex);
-		//pthread_cond_wait(&cond, &mutex);
-		
+		//Check if either two or all threads of different type are accessing same row.
+		if(htype==mtype || mtype == ltype || htype == ltype || (htype==mtype && mtype == ltype && htype == ltype)){
+			printf("they are processing same row now\n");
+		}
+
 		if(strcmp(seller_type, "H") == 0){
             
 			float serve_time  = H_serve_time[rand() % 2];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
-			if(htype_seats>9){
-				htype_seats = 0;
+			if(tickets[htype].next_avail>9){
 				htype++;
 			}
+
 			if(htype_customer == N){
 				printf("All Customers served of type H !\n");
-				pthread_mutex_unlock(&mutex);
 				return NULL;
 			}
-			served_customer = custQ[0].cust[htype_customer++].custId;
+			served_customer = custQ[htype].cust[htype_customer++].custId;
 			printf("Customer %d of Htype arrived..\n", served_customer);
 
-            tickets[htype].next_avail = htype_seats++;
-
+			printf("Customer %d served of Htype, Seat %d %d sold...\n", served_customer, htype, tickets[htype].next_avail);
+			tickets[htype].next_avail++;
 			sleep(serve_time);
-			printf("Customer %d served of Htype, Seat %d %d sold...", served_customer, htype, htype_seats-1);
+			
 		} else if(strcmp(seller_type, "M") == 0) {
 			float serve_time  = M_serve_time[rand() % 3];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+			if(tickets[mtype].next_avail>9){
+				mtype = m_serve_order[++next_row_m];
+			}
+			if(mtype_customer == N){
+				printf("All Customers served of type M !\n");
+				return NULL;
+			}
+			served_customer = custQ[mtype].cust[mtype_customer++].custId;
+			printf("Customer %d of Mtype arrived..\n", served_customer);
+			
+			printf("Customer %d served of Mtype, Seat %d %d sold...\n", served_customer, mtype, tickets[mtype].next_avail);
+			tickets[mtype].next_avail++;
 			sleep(serve_time);
+
 		} else {
 			float serve_time  = L_serve_time[rand() % 4];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+			if(tickets[ltype].next_avail>9){
+				ltype--;
+			}
+			if(ltype_customer == N){
+				printf("All Customers served of type L !\n");
+				return NULL;
+			}
+			served_customer = custQ[ltype].cust[ltype_customer++].custId;
+			printf("Customer %d of Ltype arrived..\n", served_customer);
+			
+			printf("Customer %d served of Ltype, Seat %d %d sold...\n", served_customer, ltype, tickets[ltype].next_avail);
+			tickets[ltype].next_avail++;
 			sleep(serve_time);
 		}
 
 		serve_t++;
-		pthread_mutex_unlock(&mutex);
-		// Serve any buyer available in this seller queue that is ready
-		// now to buy ticket till done with all relevant buyers in their queue
 	}
 	return NULL;
 	// thread exits
@@ -156,13 +183,11 @@ int main(int argc, char *argv[])
 {
 
 
-
 	printf("Please enter the number of customer : ");
 	scanf("%d", &N);
-
 	setupQueue(N);
 
-	printCustomerQ(N);
+	//printCustomerQ(N);
 
 	int i;
 	pthread_t tids[10];

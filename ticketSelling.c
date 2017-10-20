@@ -8,6 +8,7 @@
 #include <semaphore.h>
 
 #define NUM_QUEUE 10
+#define ROW_SIZE 10
 
 typedef struct customer {
 	int arrival_time;
@@ -21,13 +22,16 @@ typedef struct customerQ {
 } customerQ;
 
 
-typedef struct ticketSell {
+typedef struct row {
 	int next_avail;
-} ticketSell;
+	pthread_mutex_t mutex;
+} row;
 
 customerQ *custQ;
-ticketSell tickets[10];
+row tickets[10];
 
+// this is just for now i.e simulation sleeping for
+// that many sec. that's it
 float H_serve_time[] = {0.1, .2};
 float M_serve_time[] = {.2, .3, .4};
 float L_serve_time[] = {.4, .5, .6, .7};
@@ -49,7 +53,7 @@ static int ltype = 9,  ltype_served, ltype_customer;
 void * sell(char *seller_type)
 {
 
-	while (serve_t < 100)
+	while (serve_t < 60)
 	{
 		int served_customer=0;
 		//Check if either two or all threads of different type are accessing same row.
@@ -79,6 +83,10 @@ void * sell(char *seller_type)
 		} else if(strcmp(seller_type, "M") == 0) {
 			float serve_time  = M_serve_time[rand() % 3];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+
+			int lock_for_row = mtype;
+			// take lock for that perticular row
+			pthread_mutex_lock(&tickets[lock_for_row].mutex);
 			if(tickets[mtype].next_avail>9){
 				mtype = m_serve_order[++next_row_m];
 			}
@@ -88,14 +96,20 @@ void * sell(char *seller_type)
 			}
 			served_customer = custQ[mtype].cust[mtype_customer++].custId;
 			printf("Customer %d of Mtype arrived..\n", served_customer);
-			
+
 			printf("Customer %d served of Mtype, Seat %d %d sold...\n", served_customer, mtype, tickets[mtype].next_avail);
 			tickets[mtype].next_avail++;
 			sleep(serve_time);
+			pthread_mutex_unlock(&tickets[lock_for_row].mutex);
 
 		} else {
 			float serve_time  = L_serve_time[rand() % 4];
 			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+
+			int lock_for_row = ltype;
+			// take lock for that perticular row
+			pthread_mutex_lock(&tickets[lock_for_row].mutex);
+
 			if(tickets[ltype].next_avail>9){
 				ltype--;
 			}
@@ -105,10 +119,12 @@ void * sell(char *seller_type)
 			}
 			served_customer = custQ[ltype].cust[ltype_customer++].custId;
 			printf("Customer %d of Ltype arrived..\n", served_customer);
-			
+
 			printf("Customer %d served of Ltype, Seat %d %d sold...\n", served_customer, ltype, tickets[ltype].next_avail);
 			tickets[ltype].next_avail++;
 			sleep(serve_time);
+
+			pthread_mutex_unlock(&tickets[lock_for_row].mutex);
 		}
 
 		serve_t++;
@@ -158,6 +174,11 @@ void setupQueue(int N)
     // sort customer based on arrival times
     for(i = 0; i < NUM_QUEUE; ++i){
     	qsort((void *)custQ[i].cust, N, sizeof(customer), compare_arrival_times);	
+    }
+
+    // initialize all mutex value
+    for(i = 0; i < ROW_SIZE; ++i){
+		pthread_mutex_init(&tickets[i].mutex, NULL);
     }
     
 }

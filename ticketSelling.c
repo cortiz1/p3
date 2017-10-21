@@ -27,6 +27,11 @@ typedef struct row {
 	pthread_mutex_t mutex;
 } row;
 
+typedef struct pthread_args{
+	char *seller_type;
+	int row_id;
+} pthread_args;
+
 customerQ *custQ;
 row tickets[10];
 
@@ -50,7 +55,7 @@ static int mtype = 4,  mtype_served, mtype_customer;
 static int ltype = 9,  ltype_served, ltype_customer;
 
 // seller thread to serve one time slice (1 minute)
-void * sell(char *seller_type)
+void * sell(pthread_args *pargs)
 {
 
 	while (serve_t < 60)
@@ -61,10 +66,10 @@ void * sell(char *seller_type)
 			printf("they are processing same row now\n");
 		}
 
-		if(strcmp(seller_type, "H") == 0){
+		if(strcmp(pargs->seller_type, "H") == 0){
             
 			float serve_time  = H_serve_time[rand() % 2];
-			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
+
 			if(tickets[htype].next_avail>9){
 				htype++;
 			}
@@ -73,20 +78,21 @@ void * sell(char *seller_type)
 				printf("All Customers served of type H !\n");
 				return NULL;
 			}
-			served_customer = custQ[htype].cust[htype_customer++].custId;
+			served_customer = custQ[pargs->row_id].cust[htype_customer++].custId;
 			printf("Customer %d of Htype arrived..\n", served_customer);
 
 			printf("Customer %d served of Htype, Seat %d %d sold...\n", served_customer, htype, tickets[htype].next_avail);
 			tickets[htype].next_avail++;
+
+			printf("Sleeping thread %s for time %f\n", pargs->seller_type, serve_time);
 			sleep(serve_time);
 			
-		} else if(strcmp(seller_type, "M") == 0) {
+		} else if(strcmp(pargs->seller_type, "M") == 0) {
 			float serve_time  = M_serve_time[rand() % 3];
-			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
 
 			int lock_for_row = mtype;
 			// take lock for that perticular row
-			pthread_mutex_lock(&tickets[lock_for_row].mutex);
+	 		pthread_mutex_lock(&tickets[lock_for_row].mutex);
 			if(tickets[mtype].next_avail>9){
 				mtype = m_serve_order[++next_row_m];
 			}
@@ -94,17 +100,19 @@ void * sell(char *seller_type)
 				printf("All Customers served of type M !\n");
 				return NULL;
 			}
-			served_customer = custQ[mtype].cust[mtype_customer++].custId;
+			served_customer = custQ[pargs->row_id].cust[mtype_customer++].custId;
 			printf("Customer %d of Mtype arrived..\n", served_customer);
 
 			printf("Customer %d served of Mtype, Seat %d %d sold...\n", served_customer, mtype, tickets[mtype].next_avail);
 			tickets[mtype].next_avail++;
+
+			printf("Sleeping thread %s for time %f\n", pargs->seller_type, serve_time);
 			sleep(serve_time);
+
 			pthread_mutex_unlock(&tickets[lock_for_row].mutex);
 
 		} else {
 			float serve_time  = L_serve_time[rand() % 4];
-			printf("Sleeping thread %s for time %f\n", seller_type, serve_time);
 
 			int lock_for_row = ltype;
 			// take lock for that perticular row
@@ -117,11 +125,13 @@ void * sell(char *seller_type)
 				printf("All Customers served of type L !\n");
 				return NULL;
 			}
-			served_customer = custQ[ltype].cust[ltype_customer++].custId;
+			served_customer = custQ[pargs->row_id].cust[ltype_customer++].custId;
 			printf("Customer %d of Ltype arrived..\n", served_customer);
 
 			printf("Customer %d served of Ltype, Seat %d %d sold...\n", served_customer, ltype, tickets[ltype].next_avail);
 			tickets[ltype].next_avail++;
+
+			printf("Sleeping thread %s for time %f\n", pargs->seller_type, serve_time);
 			sleep(serve_time);
 
 			pthread_mutex_unlock(&tickets[lock_for_row].mutex);
@@ -168,7 +178,6 @@ void setupQueue(int N)
     		custQ[i].cust[j].custId = j;
     		custQ[i].cust[j].arrival_time = arrival_time;  
     	}
-
     }
 
     // sort customer based on arrival times
@@ -203,31 +212,40 @@ void printCustomerQ(int N)
 int main(int argc, char *argv[])
 {
 
+	pthread_args pargs[10];
 
 	printf("Please enter the number of customer : ");
 	scanf("%d", &N);
 	setupQueue(N);
 
-	//printCustomerQ(N);
+	printCustomerQ(N);
 
 	int i;
 	pthread_t tids[10];
-	char *seller_type = (char *) malloc(3);
 	// Create necessary data structures for the simulator.
 	// Create buyers list for each seller ticket queue based on the
 	// N value within an hour and have them in the seller queue.
 	// Create 10 threads representing the 10 sellers.
 	
-	seller_type = "H";
-	pthread_create(&tids[0], NULL, (void *)sell, seller_type);
+	pargs[0].seller_type = (char *) malloc(strlen("H") + 1);
+	memcpy(pargs[0].seller_type, "H", strlen("H"));
+	pargs[0].row_id = 0;
+	pthread_create(&tids[0], NULL, (void *)sell, &pargs[0]);
 	
-	seller_type = "M";
-	for (i = 1; i < 4; i++)
-		pthread_create(&tids[i], NULL, (void *)sell, seller_type);
+	for (i = 1; i < 4; i++) {
+		pargs[i].seller_type = (char *) malloc(strlen("M") + 1);
+		memcpy(pargs[i].seller_type, "H", strlen("H"));
+		pargs[i].row_id = i;
+		pthread_create(&tids[i], NULL, (void *)sell, &pargs[i]);
+	}
 	
-	seller_type = "L";
-	for (i = 4; i < 10; i++)
-		pthread_create(&tids[i], NULL, (void *)sell, seller_type);
+	
+	for (i = 4; i < 10; i++) {
+		pargs[i].seller_type = (char *) malloc(strlen("L") + 1);
+		memcpy(pargs[i].seller_type, "L", strlen("L"));
+		pargs[i].row_id = i;
+		pthread_create(&tids[i], NULL, (void *)sell, &pargs[i]);
+	}
 	
 	// wakeup all seller threads
 	wakeup_all_seller_threads();

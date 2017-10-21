@@ -212,7 +212,7 @@ void printCustomerQ(int N)
 int main(int argc, char *argv[])
 {
 
-	pthread_args pargs[10];
+	pthread_args *pargs;
 
 	printf("Please enter the number of customer : ");
 	scanf("%d", &N);
@@ -227,24 +227,28 @@ int main(int argc, char *argv[])
 	// N value within an hour and have them in the seller queue.
 	// Create 10 threads representing the 10 sellers.
 	
-	pargs[0].seller_type = (char *) malloc(strlen("H") + 1);
-	memcpy(pargs[0].seller_type, "H", strlen("H"));
-	pargs[0].row_id = 0;
-	pthread_create(&tids[0], NULL, (void *)sell, &pargs[0]);
+	pargs = (pthread_args *) malloc(sizeof(pthread_args));
+
+	pargs->seller_type = (char *) malloc(strlen("H") + 1);
+	memcpy(pargs->seller_type, "H", strlen("H"));
+	pargs->row_id = 0;
+	pthread_create(&tids[0], NULL, (void *)sell, (void *)pargs);
 	
 	for (i = 1; i < 4; i++) {
-		pargs[i].seller_type = (char *) malloc(strlen("M") + 1);
-		memcpy(pargs[i].seller_type, "H", strlen("H"));
-		pargs[i].row_id = i;
-		pthread_create(&tids[i], NULL, (void *)sell, &pargs[i]);
+		pargs = (pthread_args *) malloc(sizeof(pthread_args));
+		pargs->seller_type = (char *) malloc(strlen("M") + 1);
+		memcpy(pargs->seller_type, "M", strlen("M"));
+		pargs->row_id = i;
+		pthread_create(&tids[i], NULL, (void *)sell, (void *)pargs);
 	}
 	
 	
 	for (i = 4; i < 10; i++) {
-		pargs[i].seller_type = (char *) malloc(strlen("L") + 1);
-		memcpy(pargs[i].seller_type, "L", strlen("L"));
-		pargs[i].row_id = i;
-		pthread_create(&tids[i], NULL, (void *)sell, &pargs[i]);
+		pargs = (pthread_args *) malloc(sizeof(pthread_args));	
+		pargs->seller_type = (char *) malloc(strlen("L") + 1);
+		memcpy(pargs->seller_type, "L", strlen("L"));
+		pargs->row_id = i;
+		pthread_create(&tids[i], NULL, (void *)sell, (void *)pargs);
 	}
 	
 	// wakeup all seller threads

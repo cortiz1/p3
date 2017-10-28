@@ -370,8 +370,8 @@ int main(int argc, char *argv[])
 
 	pthread_args *pargs;
 
-	seat_manager_init();
 	theater_init();
+	seat_manager_init();
 
         N = 5;
         if(argc != 2) printf("Accepting the default value of customers (%d)\n",N);

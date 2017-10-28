@@ -37,14 +37,6 @@ typedef struct pthread_args{
 customerQ *custQ;
 row tickets[10];
 
-// this is just for now i.e simulation sleeping for
-// that many sec. that's it
-float H_serve_time[] = {0.1, .2};
-float M_serve_time[] = {.2, .3, .4};
-float L_serve_time[] = {.4, .5, .6, .7};
-
-int m_serve_order[] = {4,5,3,6,2,7,1,8,0,9};
-
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -76,7 +68,6 @@ struct seat_manager {
 
 void print_theater(){
     int i, j, idx;
-    char* str;
     for (i=0; i<10; i++){
         printf("ROW %02d |", i);
         for (j=0; j<10; j++){
@@ -382,8 +373,10 @@ int main(int argc, char *argv[])
 	seat_manager_init();
 	theater_init();
 
-	printf("Please enter the number of customer : ");
-	scanf("%d", &N);
+        N = 5;
+        if(argc != 2) printf("Accepting the default value of customers (%d)\n",N);
+        else N = atoi(argv[1]);
+        printf("The number of customers entered is %d\n",N);
 	setupQueue(N);
 
 	printCustomerQ(N);

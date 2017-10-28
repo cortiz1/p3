@@ -379,8 +379,8 @@ int main(int argc, char *argv[])
 
 	pthread_args *pargs;
 
-	seat_manager_init();
 	theater_init();
+	seat_manager_init();
 
 	printf("Please enter the number of customer : ");
 	scanf("%d", &N);

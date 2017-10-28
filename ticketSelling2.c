@@ -117,10 +117,11 @@ seat* get_H_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.h_seat->state != AVAILABLE) increment_h_seat();
         allocated_seat_to_sell = the_seat_manager.h_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_h_seat();
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -178,10 +179,11 @@ seat* get_M_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.m_seat->state != AVAILABLE) increment_m_seat();
         allocated_seat_to_sell = the_seat_manager.m_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_m_seat();
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -210,10 +212,11 @@ seat* get_L_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.l_seat->state != AVAILABLE) increment_l_seat();
         allocated_seat_to_sell = the_seat_manager.l_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_l_seat();
     }else{
         allocated_seat_to_sell = NULL;
     }

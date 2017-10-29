@@ -10,6 +10,7 @@
 #define ROW_SIZE 10
 #define DEBUG 1         // this can be 2 for theater view after each ticket sale
 
+int h_cust = 0, m_cust = 0, l_cust = 0;
 typedef struct customer {
 	int arrival_time;
 	int custId;
@@ -122,6 +123,7 @@ seat* get_H_seat_to_sell(){
         allocated_seat_to_sell = the_seat_manager.h_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
+        h_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -184,6 +186,7 @@ seat* get_M_seat_to_sell(){
         allocated_seat_to_sell = the_seat_manager.m_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
+        m_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -217,6 +220,7 @@ seat* get_L_seat_to_sell(){
         allocated_seat_to_sell = the_seat_manager.l_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
+        l_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -438,5 +442,7 @@ int main(int argc, char *argv[])
 
 	printf("\n\n Theater after sale period:\n");
 	print_theater();
+        
+        printf("\n\n Customers allocated seats: (H) %d  (M) %d  (L) %d [Total] %d [Turned away] %d\n",h_cust,m_cust,l_cust,(h_cust+m_cust+l_cust),N*10-(h_cust+m_cust+l_cust));
 
 }

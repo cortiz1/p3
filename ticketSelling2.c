@@ -10,6 +10,7 @@
 #define ROW_SIZE 10
 #define DEBUG 1         // this can be 2 for theater view after each ticket sale
 
+int h_cust = 0, m_cust = 0, l_cust = 0;
 typedef struct customer {
 	int arrival_time;
 	int custId;
@@ -36,14 +37,6 @@ typedef struct pthread_args{
 
 customerQ *custQ;
 row tickets[10];
-
-// this is just for now i.e simulation sleeping for
-// that many sec. that's it
-float H_serve_time[] = {0.1, .2};
-float M_serve_time[] = {.2, .3, .4};
-float L_serve_time[] = {.4, .5, .6, .7};
-
-int m_serve_order[] = {4,5,3,6,2,7,1,8,0,9};
 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -76,7 +69,6 @@ struct seat_manager {
 
 void print_theater(){
     int i, j, idx;
-    char* str;
     for (i=0; i<10; i++){
         printf("ROW %02d |", i);
         for (j=0; j<10; j++){
@@ -126,10 +118,12 @@ seat* get_H_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.h_seat->state != AVAILABLE) increment_h_seat();
         allocated_seat_to_sell = the_seat_manager.h_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_h_seat();
+        h_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -187,10 +181,12 @@ seat* get_M_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.m_seat->state != AVAILABLE) increment_m_seat();
         allocated_seat_to_sell = the_seat_manager.m_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_m_seat();
+        m_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -219,10 +215,12 @@ seat* get_L_seat_to_sell(){
     seat* allocated_seat_to_sell;
     pthread_mutex_lock(&seat_lock);
     if (the_seat_manager.free_seats > 0){
+        // If the seat pointed to by the seat_manager is not free, get a free seat.
+        if(the_seat_manager.l_seat->state != AVAILABLE) increment_l_seat();
         allocated_seat_to_sell = the_seat_manager.l_seat;
         allocated_seat_to_sell->state = PROCESSING;
         the_seat_manager.free_seats--;
-        increment_l_seat();
+        l_cust++;
     }else{
         allocated_seat_to_sell = NULL;
     }
@@ -382,8 +380,10 @@ int main(int argc, char *argv[])
 	theater_init();
 	seat_manager_init();
 
-	printf("Please enter the number of customer : ");
-	scanf("%d", &N);
+        N = 5;
+        if(argc != 2) printf("Accepting the default value of customers (%d)\n",N);
+        else N = atoi(argv[1]);
+        printf("The number of customers entered is %d\n",N);
 	setupQueue(N);
 
 	printCustomerQ(N);
@@ -442,5 +442,7 @@ int main(int argc, char *argv[])
 
 	printf("\n\n Theater after sale period:\n");
 	print_theater();
+        
+        printf("\n\n Customers allocated seats: (H) %d  (M) %d  (L) %d [Total] %d [Turned away] %d\n",h_cust,m_cust,l_cust,(h_cust+m_cust+l_cust),N*10-(h_cust+m_cust+l_cust));
 
 }

@@ -90,6 +90,8 @@ void print_theater(){
 
 struct seat_manager the_seat_manager;
 
+
+// Some init routines for the seat manager and the theater array:
 void seat_manager_init(){
     the_seat_manager.h_seat = &theater[0];
     the_seat_manager.m_seat = &theater[40];
@@ -105,7 +107,7 @@ void theater_init(){
     }
 }
 
-pthread_mutex_t seat_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t seat_lock = PTHREAD_MUTEX_INITIALIZER;  // The lock for the seat manager struct
 
 void increment_h_seat(){
     seat* tmp_seat = the_seat_manager.h_seat;
@@ -298,6 +300,7 @@ void * sell(pthread_args *pargs)
 	return NULL;
 }
 
+// Wake up everyone waiting on &cond.
 void wakeup_all_seller_threads()
 {
 	pthread_mutex_lock(&mutex);
@@ -305,6 +308,7 @@ void wakeup_all_seller_threads()
 	pthread_mutex_unlock(&mutex);
 }
 
+// For sorting:
 int compare_arrival_times(const void * a, const void * b)
 {
     customer *c1 = (customer *)a;
@@ -315,6 +319,7 @@ int compare_arrival_times(const void * a, const void * b)
     return r;
 }
 
+// Generate the customer queues
 void setupQueue(int N)
 {
 	int i, j, arrival_time;
@@ -372,6 +377,7 @@ void printCustomerQ(int N)
     }
 }
 
+// Creates all threads and then starts the simulation loop
 int main(int argc, char *argv[])
 {
 
@@ -430,7 +436,7 @@ int main(int argc, char *argv[])
 	for (i=0; i<60; i++){
 	    if (DEBUG == 1) printf("\nclock tick %02d:  ", serve_t);
 	    wakeup_all_seller_threads();
-	    usleep(50000);
+	    usleep(700000);
 	    if (pt && DEBUG == 2){
 //	        printf("\n New Seat Sold!\n");
 	        print_theater();
